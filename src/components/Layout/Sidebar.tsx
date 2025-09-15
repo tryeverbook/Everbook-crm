@@ -8,13 +8,18 @@ import {
   Building, 
   DollarSign, 
   Settings,
-  Heart
+  Heart,
+  Inbox
 } from 'lucide-react';
 
 const navigation = [
   { name: 'Dashboard', href: '/', icon: LayoutDashboard },
-  { name: 'Clients', href: '/clients', icon: Users },
+  { name: 'Calendar', href: '/calendar', icon: Calendar },
+  { name: 'Conversations', href: '/conversations', icon: Inbox },
+  { name: 'Leads', href: '/leads', icon: Users },
+  { name: 'Tours', href: '/tours', icon: Calendar },
   { name: 'Events', href: '/events', icon: Calendar },
+  { name: 'Clients', href: '/clients', icon: Users },
   { name: 'Tasks', href: '/tasks', icon: CheckSquare },
   { name: 'Vendors', href: '/vendors', icon: Building },
   { name: 'Finances', href: '/finances', icon: DollarSign },

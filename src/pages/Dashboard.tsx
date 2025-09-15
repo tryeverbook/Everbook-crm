@@ -1,11 +1,45 @@
 import React from 'react';
 import { StatsCard } from '../components/Dashboard/StatsCard';
 import { RecentActivity } from '../components/Dashboard/RecentActivity';
-import { mockDashboardStats } from '../data/mockData';
-import { Users, Calendar, Clock, DollarSign, Plus, TrendingUp, Heart } from 'lucide-react';
+import { mockDashboardStats, mockEvents } from '../data/mockData';
+import { Users, Calendar, Clock, DollarSign, Plus, TrendingUp, Heart, BadgeDollarSign } from 'lucide-react';
+import { KeyActions, KeyActionItem } from '../components/Dashboard/KeyActions';
+import { UpcomingList } from '../components/Dashboard/UpcomingList';
+import { Event } from '../types';
 
 export const Dashboard: React.FC = () => {
   const stats = mockDashboardStats;
+  const events: Event[] = mockEvents;
+
+  const pipelineAmount = events
+    .filter(e => ['planning', 'confirmed', 'in-progress'].includes(e.status))
+    .reduce((sum, e) => sum + e.budget, 0);
+
+  const confirmedAmount = events
+    .filter(e => ['confirmed', 'in-progress', 'completed'].includes(e.status))
+    .reduce((sum, e) => sum + e.budget, 0);
+
+  const keyActions: KeyActionItem[] = [
+    {
+      id: '1',
+      title: 'Reply to lead: Emma R.',
+      description: 'AI drafted a reply asking for guest count and budget. Review and send.',
+      category: 'lead_response',
+      dueAt: new Date(Date.now() + 60 * 60 * 1000).toISOString(),
+    },
+    {
+      id: '2',
+      title: 'Approve tour follow-up template',
+      description: 'New follow-up template for no-shows. Requires approval.',
+      category: 'template',
+    },
+    {
+      id: '3',
+      title: 'Review yesterday’s tours',
+      description: 'Add notes and mark outcomes for 2 completed tours.',
+      category: 'tour_review',
+    },
+  ];
 
   return (
     <div className="space-y-8">
@@ -28,24 +62,24 @@ export const Dashboard: React.FC = () => {
 
       <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
         <StatsCard
-          title="Total Clients"
-          value={stats.totalClients}
+          title="Pipeline ($)"
+          value={`$${(pipelineAmount / 1000).toFixed(0)}k`}
           change="+12%"
           changeType="increase"
-          icon={Users}
+          icon={BadgeDollarSign}
           gradient="bg-gradient-to-br from-blue-400 to-blue-600"
         />
         <StatsCard
-          title="Active Events"
-          value={stats.activeEvents}
+          title="Confirmed ($)"
+          value={`$${(confirmedAmount / 1000).toFixed(0)}k`}
           change="+8%"
           changeType="increase"
           icon={Calendar}
           gradient="bg-gradient-to-br from-blush to-mauve"
         />
         <StatsCard
-          title="Upcoming Deadlines"
-          value={stats.upcomingDeadlines}
+          title="Active Events"
+          value={stats.activeEvents}
           icon={Clock}
           gradient="bg-gradient-to-br from-orange-400 to-orange-600"
         />
@@ -60,54 +94,11 @@ export const Dashboard: React.FC = () => {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-        <RecentActivity activities={stats.recentActivities} />
-        
-        <div className="bg-white/70 backdrop-blur-sm shadow-card rounded-3xl border border-champagne/30">
-          <div className="px-6 py-6">
-            <div className="flex items-center justify-between mb-6">
-              <h3 className="text-xl font-serif font-semibold text-charcoal">Quick Actions</h3>
-              <Heart className="h-5 w-5 text-blush" />
-            </div>
-            <div className="space-y-4">
-              <button className="w-full bg-gradient-to-r from-blush/10 to-mauve/10 border border-blush/20 rounded-2xl p-5 text-left hover:bg-gradient-to-r hover:from-blush/20 hover:to-mauve/20 hover:border-blush/30 transition-all duration-200 group">
-                <div className="flex items-center">
-                  <div className="p-2 bg-gradient-to-br from-blush to-mauve rounded-xl mr-4 group-hover:scale-105 transition-transform duration-200">
-                    <Users className="h-5 w-5 text-white" />
-                  </div>
-                  <div>
-                    <span className="font-serif font-medium text-charcoal text-lg">Add New Client</span>
-                    <p className="text-sm text-gray-600 mt-1">Create a beautiful client profile</p>
-                  </div>
-                </div>
-              </button>
-              
-              <button className="w-full bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200/50 rounded-2xl p-5 text-left hover:bg-gradient-to-r hover:from-blue-100 hover:to-indigo-100 hover:border-blue-300/50 transition-all duration-200 group">
-                <div className="flex items-center">
-                  <div className="p-2 bg-gradient-to-br from-blue-400 to-blue-600 rounded-xl mr-4 group-hover:scale-105 transition-transform duration-200">
-                    <Calendar className="h-5 w-5 text-white" />
-                  </div>
-                  <div>
-                    <span className="font-serif font-medium text-charcoal text-lg">Schedule Event</span>
-                    <p className="text-sm text-gray-600 mt-1">Plan the perfect celebration</p>
-                  </div>
-                </div>
-              </button>
-              
-              <button className="w-full bg-gradient-to-r from-green-50 to-emerald-50 border border-green-200/50 rounded-2xl p-5 text-left hover:bg-gradient-to-r hover:from-green-100 hover:to-emerald-100 hover:border-green-300/50 transition-all duration-200 group">
-                <div className="flex items-center">
-                  <div className="p-2 bg-gradient-to-br from-green-400 to-emerald-600 rounded-xl mr-4 group-hover:scale-105 transition-transform duration-200">
-                    <TrendingUp className="h-5 w-5 text-white" />
-                  </div>
-                  <div>
-                    <span className="font-serif font-medium text-charcoal text-lg">View Analytics</span>
-                    <p className="text-sm text-gray-600 mt-1">Track business performance</p>
-                  </div>
-                </div>
-              </button>
-            </div>
-          </div>
-        </div>
+        <KeyActions actions={keyActions} />
+        <UpcomingList events={events} />
       </div>
+
+      <RecentActivity activities={stats.recentActivities} />
     </div>
   );
 };

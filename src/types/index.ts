@@ -69,3 +69,27 @@ export interface Activity {
   timestamp: string;
   relatedEntity: string;
 }
+
+export interface Tour {
+  id: string;
+  leadId: string;
+  leadName: string;
+  date: string;
+  venue: string;
+  status: 'scheduled' | 'completed' | 'no-show' | 'cancelled';
+  notes?: string;
+  createdAt: string;
+}
+
+export interface Conversation {
+  id: string;
+  leadId?: string;
+  clientId?: string;
+  channel: 'sms' | 'email';
+  direction: 'in' | 'out';
+  status: 'sent' | 'received' | 'draft';
+  subject?: string;
+  body: string;
+  createdAt: string;
+  rating?: 1 | 2 | 3 | 4 | 5;
+}

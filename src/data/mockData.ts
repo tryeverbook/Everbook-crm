@@ -1,5 +1,5 @@
 import { faker } from '@faker-js/faker';
-import { Client, Event, Task, Vendor, DashboardStats, Activity } from '../types';
+import { Client, Event, Task, Vendor, DashboardStats, Activity, Tour, Conversation } from '../types';
 import { addDays, subDays, format } from 'date-fns';
 
 // Generate mock clients
@@ -88,3 +88,45 @@ export const mockDashboardStats: DashboardStats = {
     relatedEntity: faker.person.fullName(),
   })),
 };
+
+// Generate mock tours
+export const mockTours: Tour[] = Array.from({ length: 10 }, () => {
+  const client = faker.helpers.arrayElement(mockClients);
+  return {
+    id: faker.string.uuid(),
+    leadId: client.id,
+    leadName: client.name,
+    date: faker.date.soon({ days: 20 }).toISOString(),
+    venue: faker.company.name() + ' ' + faker.helpers.arrayElement(['Hall', 'Resort', 'Garden', 'Hotel']),
+    status: faker.helpers.arrayElement(['scheduled', 'completed', 'no-show']),
+    notes: faker.datatype.boolean() ? faker.lorem.sentence() : undefined,
+    createdAt: faker.date.past().toISOString(),
+  } as Tour;
+});
+
+// Generate mock conversations
+export const mockConversations: Conversation[] = Array.from({ length: 20 }, () => {
+  const client = faker.helpers.arrayElement(mockClients);
+  return {
+    id: faker.string.uuid(),
+    leadId: client.id,
+    channel: faker.helpers.arrayElement(['sms', 'email']),
+    direction: faker.helpers.arrayElement(['in', 'out']),
+    status: faker.helpers.arrayElement(['sent', 'received']),
+    subject: faker.datatype.boolean() ? faker.lorem.words({ min: 2, max: 5 }) : undefined,
+    body: faker.lorem.sentence(),
+    createdAt: faker.date.recent({ days: 10 }).toISOString(),
+    rating: faker.datatype.boolean() ? faker.number.int({ min: 3, max: 5 }) as 3 | 4 | 5 : undefined,
+  } as Conversation;
+}).concat([
+  {
+    id: faker.string.uuid(),
+    leadId: faker.helpers.arrayElement(mockClients).id,
+    channel: 'sms',
+    direction: 'out',
+    status: 'draft',
+    subject: 'Tour follow-up',
+    body: 'It was a pleasure meeting you today! Here are available dates…',
+    createdAt: new Date().toISOString(),
+  },
+]);
