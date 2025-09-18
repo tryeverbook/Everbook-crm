@@ -51,6 +51,34 @@ function parseDateKeywordOrISO(input) {
 	return null;
 }
 
+// Normalize time to 24h HH:mm
+function normalizeTimeTo24h(input) {
+	if (!input) return null;
+	const s = String(input).trim();
+	// Already HH:mm 24h
+	const m24 = s.match(/^(\d{1,2}):(\d{2})$/);
+	if (m24) {
+		let h = parseInt(m24[1], 10);
+		const min = parseInt(m24[2], 10);
+		if (h >= 0 && h <= 23 && min >= 0 && min <= 59) {
+			return `${String(h).padStart(2, '0')}:${String(min).padStart(2, '0')}`;
+		}
+	}
+	// 12h like 1:05 pm or 01:05PM
+	const m12 = s.match(/^(\d{1,2}):(\d{2})\s*(am|pm)$/i);
+	if (m12) {
+		let h12 = parseInt(m12[1], 10);
+		const min12 = parseInt(m12[2], 10);
+		const mer = m12[3].toLowerCase();
+		if (h12 >= 1 && h12 <= 12 && min12 >= 0 && min12 <= 59) {
+			let h24 = h12 % 12;
+			if (mer === 'pm') h24 += 12;
+			return `${String(h24).padStart(2, '0')}:${String(min12).padStart(2, '0')}`;
+		}
+	}
+	return null;
+}
+
 function seedState() {
  	const times = ['10:00','11:30','13:00','15:00','16:30'];
  	const today = new Date();
@@ -234,6 +262,97 @@ app.post('/api/simulate/pricing-guide', (req, res) => {
 	});
 
 	return res.status(200).json({ ok: true, lead });
+});
+
+// Book a tour slot for a phone/date/time
+app.post('/api/book', (req, res) => {
+	const body = req.body || {};
+	const phone = String(body.phone || '').trim();
+	const dateRaw = body.date ? String(body.date) : '';
+	const timeRaw = body.time ? String(body.time) : '';
+
+	if (!phone) {
+		return res.status(400).json({ ok: false, error: 'Missing phone' });
+	}
+
+	const dateParsed = parseDateKeywordOrISO(dateRaw);
+	if (!dateParsed) {
+		return res.status(400).json({ ok: false, error: 'Invalid date' });
+	}
+
+	const timeNorm = normalizeTimeTo24h(timeRaw);
+	if (!timeNorm) {
+		return res.status(400).json({ ok: false, error: 'Invalid time' });
+	}
+
+	const s = getState();
+	const slots = (s.availability && s.availability[dateParsed]) || [];
+	if (!Array.isArray(slots) || !slots.includes(timeNorm)) {
+		return res.status(400).json({ ok: false, error: 'Slot not available' });
+	}
+
+	const nowIso = new Date().toISOString();
+	const ts = Date.now();
+
+	let lead = s.leads.find((l) => l.phone === phone);
+	if (!lead) {
+		lead = {
+			id: `lead_${ts}`,
+			name: 'Guest',
+			phone,
+			source: 'Manual',
+			status: 'new',
+			createdAt: nowIso,
+			...DEFAULT_EVENT,
+		};
+	}
+
+	const tour = {
+		id: `tour_${ts}`,
+		leadId: lead.id,
+		date: dateParsed,
+		time: timeNorm,
+		status: 'scheduled',
+		createdAt: nowIso,
+		...DEFAULT_EVENT,
+	};
+
+	const confirmation = {
+		id: `msg_${ts}`,
+		phone,
+		direction: 'out',
+		text: `✅ Tour booked for ${dateParsed} at ${timeNorm}.\n` +
+			`Wedding (75 guests, outside catering).\n` +
+			`Reply "book event" to reserve your date.`,
+		timestamp: nowIso,
+	};
+
+	mutate((st) => {
+		// remove slot
+		const daySlots = (st.availability && st.availability[dateParsed]) || [];
+		const idx = daySlots.indexOf(timeNorm);
+		if (idx >= 0) daySlots.splice(idx, 1);
+		st.availability[dateParsed] = daySlots;
+
+		// ensure lead exists in state
+		const existing = st.leads.find((l) => l.phone === phone);
+		if (!existing) {
+			st.leads.unshift(lead);
+		} else {
+			lead = existing;
+		}
+
+		// update lead status
+		lead.status = 'toured';
+
+		// add tour at front
+		st.tours.unshift(tour);
+
+		// log confirmation message
+		st.messages.push(confirmation);
+	});
+
+	return res.status(200).json({ ok: true, tour });
 });
 
 // Minimal SMS webhook that replies with TwiML

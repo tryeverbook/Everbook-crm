@@ -19,7 +19,8 @@
       "eventType": "Wedding",
       "guestCount": 75,
       "cateringType": "outside",
-      "createdAt": "2025-09-18T04:35:39.766Z"
+      "createdAt": "2025-09-18T04:35:39.766Z",
+      "status": "toured"
     },
     {
       "id": "lead_2",
@@ -31,7 +32,19 @@
       "createdAt": "2025-09-18T04:35:39.766Z"
     }
   ],
-  "tours": [],
+  "tours": [
+    {
+      "id": "tour_1758237478760",
+      "leadId": "lead_1",
+      "date": "2025-09-17",
+      "time": "11:30",
+      "status": "scheduled",
+      "createdAt": "2025-09-18T23:17:58.760Z",
+      "eventType": "Wedding",
+      "guestCount": 75,
+      "cateringType": "outside"
+    }
+  ],
   "bookings": [],
   "messages": [
     {
@@ -40,12 +53,18 @@
       "direction": "out",
       "text": "Hi Investor Demo! This is Everbook ✨\nI’ve saved your Wedding for 75 guests with outside catering.\nHere’s our pricing guide: https://example.com/pricing\nReply \"tour YYYY-MM-DD\" (or \"today\"/\"tomorrow\") to see times.",
       "timestamp": "2025-09-18T04:42:36.534Z"
+    },
+    {
+      "id": "msg_1758237478760",
+      "phone": "+12142773806",
+      "direction": "out",
+      "text": "✅ Tour booked for 2025-09-17 at 11:30.\nWedding (75 guests, outside catering).\nReply \"book event\" to reserve your date.",
+      "timestamp": "2025-09-18T23:17:58.760Z"
     }
   ],
   "availability": {
     "2025-09-17": [
       "10:00",
-      "11:30",
       "13:00",
       "15:00",
       "16:30"
