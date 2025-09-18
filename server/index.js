@@ -165,6 +165,51 @@ app.post('/api/reset', (req, res) => {
 	return res.status(200).json({ ok: true, leads, tours, bookings, messages, availability });
 });
 
+// Simulate a website visitor requesting the pricing guide
+app.post('/api/simulate/pricing-guide', (req, res) => {
+	const body = req.body || {};
+	const resolvedName = (body.name || 'Guest').trim();
+	const resolvedPhone = (body.phone || process.env.DEMO_RECIPIENT || '').trim();
+	const resolvedEmail = body.email ? String(body.email).trim() : undefined;
+
+	if (!resolvedPhone) {
+		return res.status(400).json({ ok: false, error: 'Missing phone (and DEMO_RECIPIENT not set)' });
+	}
+
+	const ts = Date.now();
+	const nowIso = new Date().toISOString();
+	const lead = {
+		id: `lead_${ts}`,
+		name: resolvedName,
+		phone: resolvedPhone,
+		email: resolvedEmail,
+		source: 'PricingGuide',
+		status: 'new',
+		createdAt: nowIso,
+		...DEFAULT_EVENT,
+	};
+
+	const text = `Hi ${resolvedName}! This is Everbook ✨\n` +
+		`I’ve saved your Wedding for 75 guests with outside catering.\n` +
+		`Here’s our pricing guide: https://example.com/pricing\n` +
+		`Reply "tour YYYY-MM-DD" (or "today"/"tomorrow") to see times.`;
+
+	const message = {
+		id: `msg_${ts}`,
+		phone: resolvedPhone,
+		direction: 'out',
+		text,
+		timestamp: nowIso,
+	};
+
+	mutate((s) => {
+		s.leads.unshift(lead);
+		s.messages.push(message);
+	});
+
+	return res.status(200).json({ ok: true, lead });
+});
+
 // Minimal SMS webhook that replies with TwiML
 app.post('/twilio/webhook', (req, res) => {
 	const twiml =

@@ -1,6 +1,18 @@
 {
   "leads": [
     {
+      "id": "lead_1758170556534",
+      "name": "Investor Demo",
+      "phone": "+12145550123",
+      "email": "demo@example.com",
+      "source": "PricingGuide",
+      "status": "new",
+      "createdAt": "2025-09-18T04:42:36.534Z",
+      "eventType": "Wedding",
+      "guestCount": 75,
+      "cateringType": "outside"
+    },
+    {
       "id": "lead_1",
       "name": "Sajid Memon",
       "phone": "+12142773806",
@@ -21,7 +33,15 @@
   ],
   "tours": [],
   "bookings": [],
-  "messages": [],
+  "messages": [
+    {
+      "id": "msg_1758170556534",
+      "phone": "+12145550123",
+      "direction": "out",
+      "text": "Hi Investor Demo! This is Everbook ✨\nI’ve saved your Wedding for 75 guests with outside catering.\nHere’s our pricing guide: https://example.com/pricing\nReply \"tour YYYY-MM-DD\" (or \"today\"/\"tomorrow\") to see times.",
+      "timestamp": "2025-09-18T04:42:36.534Z"
+    }
+  ],
   "availability": {
     "2025-09-17": [
       "10:00",
