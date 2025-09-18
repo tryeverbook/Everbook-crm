@@ -34,6 +34,23 @@ function formatDateYYYYMMDD(date) {
  	return `${year}-${month}-${day}`;
 }
 
+// tiny internal parser for later Twilio use
+function parseDateKeywordOrISO(input) {
+	if (!input) return null;
+	const lower = String(input).toLowerCase();
+	if (lower === 'today') {
+		return formatDateYYYYMMDD(new Date());
+	}
+	if (lower === 'tomorrow') {
+		const d = new Date();
+		d.setDate(d.getDate() + 1);
+		return formatDateYYYYMMDD(d);
+	}
+	// accept YYYY-MM-DD pass-through
+	if (/^\d{4}-\d{2}-\d{2}$/.test(input)) return input;
+	return null;
+}
+
 function seedState() {
  	const times = ['10:00','11:30','13:00','15:00','16:30'];
  	const today = new Date();
@@ -155,6 +172,15 @@ app.get('/health', (req, res) => {
 app.get('/api/state', (req, res) => {
 	const { leads, tours, bookings, messages, availability } = getState();
 	return res.status(200).json({ leads, tours, bookings, messages, availability });
+});
+
+// Availability lookup by date
+app.get('/api/availability', (req, res) => {
+	const raw = (req.query.date ?? '').toString();
+	const parsed = parseDateKeywordOrISO(raw);
+	const dateYmd = parsed || formatDateYYYYMMDD(new Date());
+	const slots = (getState().availability && getState().availability[dateYmd]) || [];
+	return res.status(200).json({ date: dateYmd, slots });
 });
 
 // Reset demo state to fresh seed, then persist in json mode
