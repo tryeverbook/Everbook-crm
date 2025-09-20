@@ -1,28 +1,57 @@
-import React, { useMemo, useState } from 'react';
-import { mockClients } from '../data/mockData';
+import React, { useEffect, useMemo, useState } from 'react';
+import axios from 'axios';
 import { Client } from '../types';
 import { TrendingUp, UserPlus, UserMinus, Search, Filter, Mail, Phone, Calendar } from 'lucide-react';
 import { format } from 'date-fns';
 
+const API_URL = (import.meta.env.VITE_API_URL as string) || 'http://localhost:4000';
+
+type ServerLead = {
+  id: string;
+  name: string;
+  phone: string;
+  email?: string;
+  status?: string;
+  createdAt?: string;
+};
+
 export const Leads: React.FC = () => {
-  const [leads, setLeads] = useState<Client[]>(
-    mockClients.map(c => ({ ...c, status: c.status === 'completed' ? 'lead' : c.status }))
-  );
+  const [leads, setLeads] = useState<ServerLead[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<'all' | Client['status']>('all');
 
+  useEffect(() => {
+    (async () => {
+      try {
+        const resp = await axios.get(`${API_URL}/api/state`);
+        const serverLeads: ServerLead[] = (resp.data?.leads || []).map((l: any) => ({
+          id: l.id,
+          name: l.name || 'Lead',
+          email: l.email || '',
+          phone: l.phone || '—',
+          status: l.status || 'lead',
+          createdAt: l.createdAt,
+        }));
+        setLeads(serverLeads);
+      } catch {
+        setLeads([]);
+      }
+    })();
+  }, []);
+
   const filtered = useMemo(() => {
     return leads.filter(l => {
-      const matchesSearch = l.name.toLowerCase().includes(searchTerm.toLowerCase()) || l.email.toLowerCase().includes(searchTerm.toLowerCase());
-      const matchesStatus = statusFilter === 'all' || l.status === statusFilter;
+      const matchesSearch = l.name.toLowerCase().includes(searchTerm.toLowerCase()) || (l.email || '').toLowerCase().includes(searchTerm.toLowerCase());
+      const matchesStatus = statusFilter === 'all' || (l.status as any) === statusFilter;
       return matchesSearch && matchesStatus;
     });
   }, [leads, searchTerm, statusFilter]);
 
   const conversion = useMemo(() => {
     const total = leads.length || 1;
-    const toConsult = leads.filter(l => ['consultation', 'booked', 'planning', 'completed'].includes(l.status)).length;
-    const toBooked = leads.filter(l => ['booked', 'planning', 'completed'].includes(l.status)).length;
+    // best-effort: treat any non-lead as progressed
+    const toConsult = leads.filter(l => (l.status || 'lead') !== 'lead').length;
+    const toBooked = leads.filter(l => (l.status || '').toLowerCase().includes('book')).length;
     return {
       leadToConsultRate: Math.round((toConsult / total) * 100),
       consultToBookedRate: Math.round((toBooked / Math.max(toConsult, 1)) * 100),
@@ -30,20 +59,16 @@ export const Leads: React.FC = () => {
     };
   }, [leads]);
 
-  const addLead = () => {
-    const id = Math.random().toString(36).slice(2);
-    const newLead: Client = {
-      id,
-      name: 'New Lead',
-      email: `lead-${id}@example.com`,
-      phone: '—',
-      eventType: 'wedding',
-      budget: 0,
-      status: 'lead',
-      notes: '',
-      createdAt: new Date().toISOString(),
-    };
-    setLeads([newLead, ...leads]);
+  const addLead = async () => {
+    try {
+      await axios.post(`${API_URL}/api/simulate/pricing-guide`, {
+        name: 'Walk-in Lead',
+        phone: '+15550000000',
+        email: 'walkin@example.com',
+      });
+      const resp = await axios.get(`${API_URL}/api/state`);
+      setLeads(resp.data?.leads || []);
+    } catch {}
   };
 
   const removeLead = (id: string) => setLeads(leads.filter(l => l.id !== id));
@@ -127,7 +152,7 @@ export const Leads: React.FC = () => {
                   <span className="text-xs text-gray-500">{l.status}</span>
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-sm text-gray-600">
-                  <div className="flex items-center"><Mail className="h-4 w-4 mr-2 text-gray-400" />{l.email}</div>
+                  <div className="flex items-center"><Mail className="h-4 w-4 mr-2 text-gray-400" />{l.email || '—'}</div>
                   <div className="flex items-center"><Phone className="h-4 w-4 mr-2 text-gray-400" />{l.phone}</div>
                   {l.createdAt && (
                     <div className="flex items-center"><Calendar className="h-4 w-4 mr-2 text-gray-400" />{format(new Date(l.createdAt), 'MMM d, yyyy')}</div>

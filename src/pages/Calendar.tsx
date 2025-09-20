@@ -1,16 +1,46 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
+import axios from 'axios';
 import { mockEvents, mockTours } from '../data/mockData';
 import { Event, Tour } from '../types';
-import { Calendar as CalendarIcon, Plus, X, Users, MapPin, Info, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Calendar as CalendarIcon, Plus, X, Users, Info, ChevronLeft, ChevronRight } from 'lucide-react';
 import { format, startOfMonth, endOfMonth, startOfWeek, endOfWeek, addDays, addMonths, isSameMonth, isToday } from 'date-fns';
 
 type CalendarItem = (Event | Tour) & { kind: 'event' | 'tour' };
 
+const API_URL = (((import.meta as any) || {}).env?.VITE_API_URL as string) || 'http://localhost:4000';
+
 export const Calendar: React.FC = () => {
-  const [items, setItems] = useState<CalendarItem[]>([
+  const baseEventItems: CalendarItem[] = [
     ...mockEvents.map(e => ({ ...e, kind: 'event' as const })),
+  ];
+  const [items, setItems] = useState<CalendarItem[]>([
+    ...baseEventItems,
     ...mockTours.map(t => ({ ...t, kind: 'tour' as const })),
   ]);
+
+  // Load tours from server so bookings appear here
+  useEffect(() => {
+    (async () => {
+      try {
+        const resp = await axios.get(`${API_URL}/api/state`);
+        const serverTours = (resp.data?.tours || []) as any[];
+        const leads = (resp.data?.leads || []) as any[];
+        const mapped: CalendarItem[] = serverTours.map((t: any) => ({
+          id: t.id,
+          kind: 'tour',
+          leadId: t.leadId,
+          leadName: t.leadName || (leads.find(l => l.id === t.leadId)?.name) || 'Lead',
+          date: new Date(`${t.date}T${(t.time || '11:00')}:00`).toISOString(),
+          venue: 'Main Hall',
+          status: t.status,
+          createdAt: t.createdAt || new Date().toISOString(),
+        })) as any;
+        setItems([...baseEventItems, ...mapped]);
+      } catch {
+        // keep existing items on error
+      }
+    })();
+  }, []);
 
   const [selected, setSelected] = useState<CalendarItem | null>(null);
 
@@ -72,7 +102,7 @@ export const Calendar: React.FC = () => {
     setItems([newEvent, ...items]);
   };
 
-  const deleteItem = (id: string) => setItems(items.filter(i => i.id !== id));
+  // const deleteItem = (id: string) => setItems(items.filter(i => i.id !== id));
 
   return (
     <div className="space-y-8">

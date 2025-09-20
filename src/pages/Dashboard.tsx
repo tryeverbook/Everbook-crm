@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { StatsCard } from '../components/Dashboard/StatsCard';
 import { RecentActivity } from '../components/Dashboard/RecentActivity';
 import { mockDashboardStats, mockEvents } from '../data/mockData';
@@ -6,10 +6,61 @@ import { Users, Calendar, Clock, DollarSign, Plus, TrendingUp, Heart, BadgeDolla
 import { KeyActions, KeyActionItem } from '../components/Dashboard/KeyActions';
 import { UpcomingList } from '../components/Dashboard/UpcomingList';
 import { Event } from '../types';
+import axios from 'axios';
+
+const API_URL = (import.meta.env.VITE_API_URL as string) || 'http://localhost:4000';
 
 export const Dashboard: React.FC = () => {
-  const stats = mockDashboardStats;
-  const events: Event[] = mockEvents;
+  const [stats, setStats] = useState(mockDashboardStats);
+  const [events, setEvents] = useState<Event[]>(mockEvents);
+
+  // Load recent activity and update upcoming from server signals if available
+  useEffect(() => {
+    (async () => {
+      try {
+        const resp = await axios.get(`${API_URL}/api/state`);
+        const tours = (resp.data?.tours || []) as any[];
+        const leads = (resp.data?.leads || []) as any[];
+        if (Array.isArray(tours) && tours.length) {
+          const latest = tours[0];
+          const leadName = latest.leadName || (leads.find(l => l.id === latest.leadId)?.name) || 'Lead';
+          const recent = {
+            id: `activity_${Date.now()}`,
+            type: 'event_created' as const,
+            description: `Tour scheduled with ${leadName}`,
+            timestamp: new Date().toISOString(),
+            relatedEntity: leadName,
+          };
+          setStats(prev => ({ ...prev, recentActivities: [recent, ...prev.recentActivities].slice(0, 6) }));
+
+          // Also surface tours in Upcoming by mapping them to Event shape
+          const mappedToursToEvents: Event[] = tours.map((t: any) => ({
+            id: t.id,
+            clientId: t.leadId,
+            clientName: t.leadName || (leads.find(l => l.id === t.leadId)?.name) || 'Lead',
+            name: `Tour with ${t.leadName || (leads.find(l => l.id === t.leadId)?.name) || 'Lead'}`,
+            type: 'wedding',
+            date: new Date(`${t.date}T${(t.time || '11:00')}:00`).toISOString(),
+            venue: 'Main Hall',
+            guestCount: 75,
+            budget: 0,
+            status: 'confirmed',
+            progress: 0,
+            tasks: [],
+            createdAt: t.createdAt || new Date().toISOString(),
+          }));
+          setEvents(prev => {
+            // keep existing mock events, add tours that are not already present
+            const existingIds = new Set(prev.map(e => e.id));
+            const toAdd = mappedToursToEvents.filter(e => !existingIds.has(e.id));
+            return [...prev, ...toAdd];
+          });
+        }
+      } catch {
+        // ignore
+      }
+    })();
+  }, []);
 
   const pipelineAmount = events
     .filter(e => ['planning', 'confirmed', 'in-progress'].includes(e.status))

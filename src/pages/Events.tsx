@@ -1,11 +1,47 @@
-import React, { useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
+import axios from 'axios';
 import { mockEvents } from '../data/mockData';
 import { Event } from '../types';
 import { Plus, Calendar, Users, MapPin, DollarSign, Sparkles, Clock } from 'lucide-react';
 import { format } from 'date-fns';
 
 export const Events: React.FC = () => {
-  const [events] = useState<Event[]>(mockEvents);
+  const [events, setEvents] = useState<Event[]>(mockEvents);
+
+  const API_URL = useMemo(() => ((import.meta as any)?.env?.VITE_API_URL as string) || 'http://localhost:4000', []);
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const resp = await axios.get(`${API_URL}/api/state`);
+        const bookings: any[] = resp.data?.bookings || [];
+        const leads: any[] = resp.data?.leads || [];
+        const mapped: Event[] = bookings.map((b) => {
+          const lead = leads.find((l) => l.id === b.leadId);
+          const name = lead?.name || b.leadName || 'Booked Event';
+          return {
+            id: b.id,
+            clientId: b.leadId,
+            clientName: name,
+            name: `${name} Wedding`,
+            type: 'wedding',
+            date: new Date(`${b.date}T12:00:00`).toISOString(),
+            venue: 'The Rowan House',
+            guestCount: b.guestCount || 120,
+            budget: 45000,
+            status: 'confirmed',
+            progress: 25,
+            tasks: [],
+            createdAt: b.createdAt || new Date().toISOString(),
+          } as Event;
+        });
+        if (mapped.length) {
+          // Prepend server bookings to the mock list for visibility
+          setEvents((prev) => [...mapped, ...prev]);
+        }
+      } catch {}
+    })();
+  }, [API_URL]);
 
   const getStatusColor = (status: Event['status']) => {
     switch (status) {

@@ -11,11 +11,17 @@ import { Events } from './pages/Events';
 import { Tasks } from './pages/Tasks';
 import { Vendors } from './pages/Vendors';
 import { Finances } from './pages/Finances';
+import DemoChat1 from './pages/DemoChat1';
+import DemoChat2 from './pages/DemoChat2';
+import InvoicePage from './pages/Invoice';
 
 const App: FC = () => {
   return (
     <Router>
       <Routes>
+        <Route path="/demo/chat-1" element={<DemoChat1 />} />
+        <Route path="/demo/chat-2" element={<DemoChat2 />} />
+        <Route path="/invoice/:invoiceId" element={<InvoicePage />} />
         <Route path="/" element={<Layout />}>
           <Route index element={<Dashboard />} />
           <Route path="calendar" element={<Calendar />} />

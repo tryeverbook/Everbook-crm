@@ -1,66 +1,46 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
+import axios from 'axios';
 import { Calendar, Clock, MapPin, User, Plus, Search, Filter, CheckCircle, XCircle, AlertCircle } from 'lucide-react';
 import { format } from 'date-fns';
 
 interface Tour {
   id: string;
-  leadName: string;
-  leadEmail: string;
-  leadPhone: string;
+  leadName?: string;
+  leadEmail?: string;
+  leadPhone?: string;
   date: string;
-  venue: string;
+  venue?: string;
   status: 'scheduled' | 'completed' | 'cancelled' | 'no-show';
   notes?: string;
   createdAt: string;
 }
 
+const API_URL = (import.meta.env.VITE_API_URL as string) || 'http://localhost:4000';
+
 export const Tours: React.FC = () => {
-  const [tours, setTours] = useState<Tour[]>([
-    {
-      id: '1',
-      leadName: 'Sarah Johnson',
-      leadEmail: 'sarah@example.com',
-      leadPhone: '(555) 123-4567',
-      date: new Date(Date.now() + 1000 * 60 * 60 * 24).toISOString(), // Tomorrow
-      venue: 'Main Hall',
-      status: 'scheduled',
-      notes: 'Interested in garden ceremony',
-      createdAt: new Date().toISOString(),
-    },
-    {
-      id: '2',
-      leadName: 'Michael Chen',
-      leadEmail: 'michael@example.com',
-      leadPhone: '(555) 234-5678',
-      date: new Date(Date.now() + 1000 * 60 * 60 * 24 * 2).toISOString(), // Day after tomorrow
-      venue: 'Garden Pavilion',
-      status: 'scheduled',
-      notes: 'Corporate event, 200 guests',
-      createdAt: new Date().toISOString(),
-    },
-    {
-      id: '3',
-      leadName: 'Emily Rodriguez',
-      leadEmail: 'emily@example.com',
-      leadPhone: '(555) 345-6789',
-      date: new Date(Date.now() - 1000 * 60 * 60 * 24).toISOString(), // Yesterday
-      venue: 'Rooftop Terrace',
-      status: 'completed',
-      notes: 'Loved the space, booking soon',
-      createdAt: new Date().toISOString(),
-    },
-    {
-      id: '4',
-      leadName: 'David Thompson',
-      leadEmail: 'david@example.com',
-      leadPhone: '(555) 456-7890',
-      date: new Date(Date.now() - 1000 * 60 * 60 * 24 * 2).toISOString(), // 2 days ago
-      venue: 'Main Hall',
-      status: 'no-show',
-      notes: 'Did not show up for scheduled tour',
-      createdAt: new Date().toISOString(),
-    },
-  ]);
+  const [tours, setTours] = useState<Tour[]>([]);
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const resp = await axios.get(`${API_URL}/api/state`);
+        const serverTours: Tour[] = (resp.data?.tours || []).map((t: any) => ({
+          id: t.id,
+          leadName: t.leadName || (resp.data?.leads?.find((l:any) => l.id === t.leadId)?.name) || 'Lead',
+          leadEmail: t.leadEmail || '',
+          leadPhone: t.leadPhone || '',
+          date: new Date(`${t.date}T${(t.time || '11:00')}:00`).toISOString(),
+          venue: 'Main Hall',
+          status: t.status,
+          notes: t.notes,
+          createdAt: t.createdAt || new Date().toISOString(),
+        }));
+        setTours(serverTours);
+      } catch {
+        setTours([]);
+      }
+    })();
+  }, []);
 
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<'all' | Tour['status']>('all');
